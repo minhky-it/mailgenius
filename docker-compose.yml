@@ -1,0 +1,161 @@
+x-project-name: &project_name "MailGenius Services"
+services:
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok
+    network_mode: host
+    environment:
+      - NGROK_AUTHTOKEN=2NH0RpD01Ymb1FL0Nyu4oUIu2bp_5UsBHph7i9ksmtoE1mWXT
+    command: 
+      - http
+      - --url=handy-maggot-creative.ngrok-free.app
+      - "80"
+    ports:
+      - "4040:4040"
+      - "80:80"
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    environment:
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_HOST_NAME=kafka
+      - KAFKA_CREATE_TOPICS=example-topic:1:1
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    restart: always
+  nginx:
+    build:
+      context: ./NGINX
+      dockerfile: Dockerfile
+    container_name: nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - front-end
+      - auth_service
+      - mongodb_auth_service
+      - mongodb_email_service
+      - mongodb_payment_service
+      - kafka
+      - payment_service
+      - postgres_data_service
+      - email_service
+      - data_service
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+  front-end:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+    container_name: front-end
+    working_dir: /front-end
+    volumes:
+      - ./front-end:/front-end
+    ports:
+      - "5555:3000"
+  mongodb_auth_service:
+    image: mongo
+    container_name: mongodb_auth_service
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=auth_db
+    ports:
+      - "27019:27019"
+    command: ["mongod", "--port", "27019"]
+  mongodb_email_service:
+    image: mongo
+    container_name: mongodb_email_service
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=email_db
+    ports:
+      - "27018:27018"
+    command: ["mongod", "--port", "27018"]
+  mongodb_payment_service:
+    image: mongo
+    container_name: mongodb_payment_service
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=payment_db
+    ports:
+      - "27020:27020"
+    command: ["mongod", "--port", "27020"]
+  postgres_data_service:
+    image: postgres:13
+    container_name: postgres_data_service
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: data_db
+    ports:
+      - "5432:5432"
+  auth_service:
+    build:
+      context: ./services/auth_service
+      dockerfile: Dockerfile
+    container_name: auth_service
+    working_dir: /app
+    volumes:
+      - ./services/auth_service:/app
+    ports:
+      - "3001:3001"
+    depends_on:
+      - kafka
+      - mongodb_auth_service
+  email_service:
+    build:
+      context: ./services/email_service
+      dockerfile: Dockerfile
+    container_name: email_service
+    working_dir: /app
+    volumes:
+      - ./services/email_service:/app
+    ports:
+      - "3002:3002"
+    depends_on:
+      - kafka
+      - mongodb_email_service
+  payment_service:
+    build:
+      context: ./services/payment_service
+      dockerfile: Dockerfile
+    container_name: payment_service
+    working_dir: /app
+    volumes:
+      - ./services/payment_service:/app
+    ports:
+      - "3003:3003"
+    depends_on:
+      - kafka
+      - mongodb_payment_service
+    environment:
+      - NODE_ENV=dev
+  data_service:
+    build:
+      context: ./services/data_service
+      dockerfile: Dockerfile
+    container_name: data_service
+    working_dir: /app
+    volumes:
+      - ./services/data_service:/app
+    ports:
+      - "3004:3004"
+    depends_on:
+      - kafka
+      - postgres_data_service
+    environment:
+      - FLASK_ENV=development
+    command: python run.py

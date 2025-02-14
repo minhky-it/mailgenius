@@ -1,0 +1,15 @@
+const HttpStatusCode = {
+    OK: 200,
+    INSERT_OK: 201,
+    BAD_REQUEST: 400,
+    NOT_FOUND: 404,
+    INTERNAL_SERVER_ERROR: 500,
+    FORBIDDEN: 403,
+    UNAUTHORIZED: 401,
+    ACCESS_TOKEN_EXPIRED: 428,
+    CONFLICT: 409,
+    TOO_MANY_REQUESTS: 429,
+    GONE: 410,
+}
+
+module.exports = HttpStatusCode

@@ -1,0 +1,6 @@
+node_modules
+__pycache__
+pyspark-3.1.1.tar.gz
+spark-3.1.1-bin-hadoop3.2.gz
+openjdk-8u432-b06-linux-x64.tar.gz
+*.csv
